@@ -33,7 +33,7 @@ def gen_ip(block):
     for i in range(0, 2** (32 - int(net))):
         IPs.append( ip+i )
     IPs = map(int_to_ip , IPs)
-
+    return IPs
 def int_to_ip(ip):
     ip = int(ip)
     result = "{0}.{1}.{2}.{3}".format(ip>>24, (ip & 0x00FF0000) >> 16, ( ip & 0x0000FF00) >> 8 , ip & 0xFF)
@@ -54,7 +54,7 @@ def main():
         download_alloc(filename)
     blocks = read_alloc(filename)
 
-    f= tempfile.NamedTemporaryFile(delete=False) 
+    f= tempfile.NamedTemporaryFile(delete=False,dir=args.outputdir) 
     size = 0
     for i,b in enumerate(blocks):
         IPs = gen_ip(b) 
