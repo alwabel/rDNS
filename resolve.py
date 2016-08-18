@@ -1,11 +1,15 @@
 #!/usr/bin/env python
-from dns import resolver
-from dns import reversename
-import dns
 import sys
 import threading
 import time
 import bz2
+try:
+    import dns
+    from dns import resolver
+    from dns import reversename
+except ImportError:
+    print >>sys.stderr, "install dns package: apt-get install python-dnspython"
+    sys.exit(-1)
 class reader_wrapper(object):
     def __init__(self,source=sys.stdin):
         self.lock = threading.Lock()

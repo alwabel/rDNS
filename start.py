@@ -27,20 +27,12 @@ def read_alloc(filename):
     return blocks
 
 def gen_ip(block):
-    '''
     ip,net = block.split('/')
     ip=int(ip)<<(32-int(net))
     IPs = []
     for i in range(0, 2** (32 - int(net))):
         IPs.append( ip+i )
     IPs = map(int_to_ip , IPs)
-    '''
-    with open("input","r") as f:
-        IPs=[]
-        for line in f:
-            line = line.strip()
-            IPs.append(line)
-    return IPs
 
 def int_to_ip(ip):
     ip = int(ip)
@@ -65,7 +57,6 @@ def main():
     f= tempfile.NamedTemporaryFile(delete=False) 
     size = 0
     for i,b in enumerate(blocks):
-        if i > 0: break
         IPs = gen_ip(b) 
         size += len(IPs)
         f.write('\n'.join(IPs))
