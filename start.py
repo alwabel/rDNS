@@ -7,7 +7,7 @@ import sys
 from subprocess import PIPE,Popen
 import argparse
 import math
-from multiprocessing import Process
+from multiprocessing import Process,JoinableQueue
 from resolve import start
 import bz2
 import logging
@@ -26,7 +26,7 @@ def read_alloc(filename):
         for line in f:
             line = line.strip()
             fields=  line.split(',')
-            if fields[-2].lower() == "allocated":
+            if fields[-2].lower() == "allocated" or fields[-2].lower() == "reserved":
 #                blocks.extend( gen_ip(fields[0]) )
                 blocks.append( fields[0] )
     return blocks
@@ -45,28 +45,6 @@ def int_to_ip(ip):
     return result
 
 
-def shuffle_divide_input(fname,parts,prefix,outputdir,size):
-    FNULL=open(os.devnull,"w")
-    cmd = ['sort','-R',fname,'-T',outputdir] 
-    p = Popen( ' '.join(cmd),stdout=PIPE,stderr=FNULL,shell=True)
-    part_size = math.ceil(size*1.0/parts)
-    index = 0
-    f = open(os.path.join(outputdir,"{0}-in-{1}".format(prefix,index) ) ,"w")
-    i = 0
-    for ip in p.stdout:
-        i+=1
-        if i>part_size:
-            f.close()
-            #open new file
-            index+=1
-            i = 0
-            f = open(os.path.join(outputdir,"{0}-in-{1}".format(prefix,index) ) ,"w")
-        
-        ip = ip.strip()
-        print >> f, ip
-
-    if f is not None: f.close()
-    FNULL.close()
 
 def sort_output(parts,prefix,outputdir):
     FNULL=open(os.devnull,"w")
@@ -75,17 +53,25 @@ def sort_output(parts,prefix,outputdir):
     for i in range(0,parts):
         filename=os.path.join(outputdir,"{0}-out-{1}.bz2".format(prefix,i))
         cmd.append(filename)
-    p1 = Popen(' '.join(cmd),stdout=PIPE,stderr=FNULL,shell=True)
+    p1 = Popen(' '.join(cmd),stdout=PIPE,shell=True)
     cmd = ['sort','-k1,1n'] 
 
     p2 = Popen( ' '.join(cmd),stdout=PIPE,stderr=FNULL,stdin=p1.stdout,shell=True)
     with bz2.BZ2File(os.path.join(outputdir,prefix+".bz2"),"w") as f:
         for line in p2.stdout:
             line = line.strip()
+            line = '\t'.join(line.split('\t')[1:])
             print >>f, line
 
+def get_randomip(white_list):
+    for i in xrange(0,2**32+15):
+        x = (3**i) % (2**32+15)
+        ip = int_to_ip(x)
+        if "{0}/8".format(ip.split('.')[0]) in white_list:
+            yield ip
+
 def main():
-    
+
     parser = argparse.ArgumentParser()
     parser.add_argument("-n","--parts",help="Number of partitions",default=1,type=int)
     parser.add_argument("--prefix",help="output file's prefix",default="rand")
@@ -94,51 +80,37 @@ def main():
     parts = args.parts
     outputdir = args.outputdir
     prefix = args.prefix
+
     filename = "ipv4-address-space.csv"
     if not os.path.isfile( filename ):
         print "Downloading %s" % filename
         download_alloc(filename)
+
     print "Parsing %s" % filename
-    blocks = read_alloc(filename)
 
-    print "Gen Blocks"
-    f= tempfile.NamedTemporaryFile(delete=False,dir=args.outputdir) 
-    size = 0
-    for i,b in enumerate(blocks):
-        print "gen {}".format(b)
-        IPs = gen_ip(b) 
-        size += len(IPs)
-        f.write('\n'.join(IPs))
-    fname =  f.name
-    f.close()
-
-    print "Shuffle and divide"
-    shuffle_divide_input(fname,args.parts,args.prefix,args.outputdir,size)	
-    os.remove(fname)
-
-    print "start resolving!"
+    white_list = read_alloc(filename)
     process = []
-    for i in range(0,args.parts):
-        filename=os.path.join(args.outputdir,"{0}-in-{1}".format(args.prefix,i)) 
-        output = os.path.join(args.outputdir,"{0}-out-{1}.bz2".format(args.prefix,i)) 
-
-        p = Process(target=start,args=(filename,output,))
-        p.start()
-        process.append( p )
-    for p in process:
-        p.join()
+    tasks = JoinableQueue()
 
     for i in range(0,args.parts):
         filename=os.path.join(args.outputdir,"{0}-in-{1}".format(args.prefix,i))
-        os.remove(filename) 
+        output = os.path.join(args.outputdir,"{0}-out-{1}.bz2".format(args.prefix,i))
+        p = Process(target=start,args=(tasks,output,))
+        p.start()
+        process.append( p )
+
+#    for p in process:
+#        p.join()
+    for i,ip in enumerate( get_randomip(white_list)):
+        tasks.put(ip)
+    for i in range(0,args.parts):
+        tasks.put(None)
+    tasks.join()
     print "sorting outputs"
-
     sort_output(args.parts,args.prefix,args.outputdir)
-
     for i in range(0,args.parts):
         filename=os.path.join(args.outputdir,"{0}-out-{1}.bz2".format(args.prefix,i))
         os.remove(filename) 
-
 
 if __name__ == "__main__":
     main()

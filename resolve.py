@@ -3,6 +3,7 @@ import sys
 import threading
 import time
 import bz2
+from multiprocessing import JoinableQueue
 try:
     import dns
     from dns import resolver
@@ -13,14 +14,29 @@ except ImportError:
 class reader_wrapper(object):
     def __init__(self,source=sys.stdin):
         self.lock = threading.Lock()
+        self._done = False
+        self.pending_tasks = {}
         if type(source) == type(''):
             self.source = open(source,"r")
         else: self.source = source
     def next(self):
         with self.lock:
-            return self.source.next()
+            if self._done == True: raise StopIteration 
+            if type(self.source) == type(JoinableQueue()):
+                next_task = self.source.get()
+                self.pending_tasks[next_task] = 0
+                if next_task != None:return next_task
+                else: 
+                    self._done = True
+                    raise StopIteration
+            else: return self.source.next()
     def __iter__(self):
         return self
+    def done(self,task=None):
+        with self.lock:
+            if type(self.source) == type(JoinableQueue()):
+                if task is not None: del self.pending_tasks[task]
+                self.source.task_done()     
 
 class writer_wrapper(object):
     def __init__(self,dest=sys.stdout):
@@ -32,6 +48,9 @@ class writer_wrapper(object):
     def write(self,msg):
         with self.lock:
             print >> self.dest, msg
+    def close(self):
+        with self.lock:
+            self.dest.close() 
 def int_to_ip(ip):
     a,b,c,d = ip.split('.')
     a = int(a)
@@ -69,7 +88,7 @@ def process(r,w):
         end = time.time()
         w.write("{0}\t{1}\t{2}\t{3}\t{4}".format(int_to_ip(ip),ip,','.join(IPs),end-start,start) )
         #print "{0} ---> {1}".format(ip,resolve(ip))
-
+        r.done()
 def start(input=sys.stdin,output=sys.stdout):
     r = reader_wrapper(input)
     w = writer_wrapper(output)
@@ -83,7 +102,8 @@ def start(input=sys.stdin,output=sys.stdout):
 
     for i in t:
         i.join()
-
+    w.close()
+    r.done()
 def main():
     start()
 if __name__ == "__main__":
