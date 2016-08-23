@@ -83,8 +83,8 @@ def process(r,w):
     for ip in r:
         ip = ip.strip()
         start = time.time()
-        #IPs = resolve(ip)
-        IPs = ['test']
+        IPs = resolve(ip)
+        #IPs = ['test']
         end = time.time()
         w.write("{0}\t{1}\t{2}\t{3}\t{4}".format(int_to_ip(ip),ip,','.join(IPs),end-start,start) )
         #print "{0} ---> {1}".format(ip,resolve(ip))
