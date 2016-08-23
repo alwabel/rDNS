@@ -49,7 +49,8 @@ def int_to_ip(ip):
 def sort_output(parts,prefix,outputdir):
     FNULL=open(os.devnull,"w")
 
-    cmd = ['bzcat']
+    #cmd = ['bzcat']
+    cmd = ['cat']
     for i in range(0,parts):
         filename=os.path.join(outputdir,"{0}-out-{1}.bz2".format(prefix,i))
         cmd.append(filename)
@@ -65,7 +66,11 @@ def sort_output(parts,prefix,outputdir):
 
 def get_randomip(white_list):
     for i in xrange(0,2**32+15):
-        x = (3**i) % (2**32+15)
+        if i == 0: p = 1
+        elif i == 1: p =3
+        else: p = p*3
+        #x = (3**i) % (2**32+15)
+        x = p % (2**32+15)
         ip = int_to_ip(x)
         if "{0}/8".format(ip.split('.')[0]) in white_list:
             yield ip
