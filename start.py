@@ -115,7 +115,7 @@ def main():
     sort_output(args.parts,args.prefix,args.outputdir)
     for i in range(0,args.parts):
         filename=os.path.join(args.outputdir,"{0}-out-{1}.bz2".format(args.prefix,i))
-        os.remove(filename) 
+        #os.remove(filename) 
 
 if __name__ == "__main__":
     main()
