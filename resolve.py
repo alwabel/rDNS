@@ -86,7 +86,10 @@ def process(r,w):
         IPs = resolve(ip)
         #IPs = ['test']
         end = time.time()
-        w.write("{0}\t{1}\t{2}\t{3}\t{4}".format(int_to_ip(ip),ip,','.join(IPs),end-start,start) )
+        try:
+            w.write("{0}\t{1}\t{2}\t{3}\t{4}".format(int_to_ip(ip),ip,','.join(IPs),end-start,start) )
+        except:
+            print "ip = {}".format(ip)
         #print "{0} ---> {1}".format(ip,resolve(ip))
         r.done()
 def start(input=sys.stdin,output=sys.stdout):

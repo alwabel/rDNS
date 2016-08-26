@@ -65,16 +65,23 @@ def sort_output(parts,prefix,outputdir):
             print >>f, line
 
 def get_randomip(white_list):
-    for i in xrange(0,2**32+15):
+    '''
+    limit = (2**32)+15
+    for i in xrange(0,limit):
         if i == 0: p = 1
         elif i == 1: p =3
         else: p = p*3
         #x = (3**i) % (2**32+15)
-        x = p % (2**32+15)
+        x = p % (limit)
         ip = int_to_ip(x)
         if "{0}/8".format(ip.split('.')[0]) in white_list:
             yield ip
-
+    '''
+    p=Popen("./generator --allocs ipv4-address-space.fsdb",stdout=PIPE,shell=True)
+    for ip in p.stdout:
+        ip = ip.strip()
+        if "{0}/8".format('.'.join(ip.split('.')[0:1])) in white_list:
+            yield ip
 def main():
 
     parser = argparse.ArgumentParser()
