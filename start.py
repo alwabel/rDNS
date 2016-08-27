@@ -102,7 +102,7 @@ def main():
 
     white_list = read_alloc(filename)
     process = []
-    tasks = JoinableQueue()
+    tasks = JoinableQueue(90000)
 
     for i in range(0,args.parts):
         filename=os.path.join(args.outputdir,"{0}-in-{1}".format(args.prefix,i))

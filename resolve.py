@@ -15,7 +15,7 @@ class reader_wrapper(object):
     def __init__(self,source=sys.stdin):
         self.lock = threading.Lock()
         self._done = False
-        self.pending_tasks = {}
+        #self.pending_tasks = {}
         if type(source) == type(''):
             self.source = open(source,"r")
         else: self.source = source
@@ -24,7 +24,7 @@ class reader_wrapper(object):
             if self._done == True: raise StopIteration 
             if type(self.source) == type(JoinableQueue()):
                 next_task = self.source.get()
-                self.pending_tasks[next_task] = 0
+                #self.pending_tasks[next_task] = 0
                 if next_task != None:return next_task
                 else: 
                     self._done = True
@@ -35,9 +35,9 @@ class reader_wrapper(object):
     def done(self,task=None):
         with self.lock:
             if type(self.source) == type(JoinableQueue()):
-                if task is not None: del self.pending_tasks[task]
+                #if task is not None: del self.pending_tasks[task]
                 self.source.task_done()     
-
+import os
 class writer_wrapper(object):
     def __init__(self,dest=sys.stdout):
         self.lock = threading.Lock()
