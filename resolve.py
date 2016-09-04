@@ -4,6 +4,7 @@ import threading
 import time
 import bz2
 from multiprocessing import JoinableQueue
+from myresolver import *
 try:
     import dns
     from dns import resolver
@@ -59,10 +60,17 @@ def int_to_ip(ip):
     d = int(d)
     return (a<<24) | (b << 16) | (c<<8) | d
 
+R = None
+def get_resolver():
+    global R
+    if R is None:
+        R = MyResolver()
+    return R
 def resolve(ip):
     addr = reversename.from_address(ip)
     try:
-        result = resolver.query(addr,"PTR")
+        #result = resolver.query(addr,"PTR")
+        result=get_resolver().query(addr)
         names = []
         for r in result:
             names.append( str(r)[:-1] ) 
@@ -96,7 +104,7 @@ def start(input=sys.stdin,output=sys.stdout):
     r = reader_wrapper(input)
     w = writer_wrapper(output)
 
-    MAX_THREADS = 10
+    MAX_THREADS = 150
     t = []
     for i in range(0,MAX_THREADS):
         d = threading.Thread(target=process,args=(r,w,))

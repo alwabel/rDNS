@@ -11,6 +11,7 @@ from multiprocessing import Process,JoinableQueue
 from resolve import start
 import bz2
 import logging
+import threading
 
 logging.basicConfig(format='%(asctime)s %(levelname)s:%(message)s', level=logging.WARNING)
 
@@ -82,6 +83,12 @@ def get_randomip(white_list):
         ip = ip.strip()
         if "{0}/8".format('.'.join(ip.split('.')[0:1])) in white_list:
             yield ip
+import time
+def watch(q):
+    while True:
+        print "size = {}".format(q.qsize())
+        time.sleep(1)
+        
 def main():
 
     parser = argparse.ArgumentParser()
@@ -102,7 +109,7 @@ def main():
 
     white_list = read_alloc(filename)
     process = []
-    tasks = JoinableQueue(90000)
+    tasks = JoinableQueue(5000000)
 
     for i in range(0,args.parts):
         filename=os.path.join(args.outputdir,"{0}-in-{1}".format(args.prefix,i))
@@ -111,6 +118,8 @@ def main():
         p.start()
         process.append( p )
 
+    t=threading.Thread(target=watch,args=(tasks,))
+    t.start()
 #    for p in process:
 #        p.join()
     for i,ip in enumerate( get_randomip(white_list)):
@@ -118,6 +127,7 @@ def main():
     for i in range(0,args.parts):
         tasks.put(None)
     tasks.join()
+    t.terminate()
     print "sorting outputs"
     sort_output(args.parts,args.prefix,args.outputdir)
     for i in range(0,args.parts):
