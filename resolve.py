@@ -104,7 +104,7 @@ def start(input=sys.stdin,output=sys.stdout):
     r = reader_wrapper(input)
     w = writer_wrapper(output)
 
-    MAX_THREADS = 150
+    MAX_THREADS = 500
     t = []
     for i in range(0,MAX_THREADS):
         d = threading.Thread(target=process,args=(r,w,))

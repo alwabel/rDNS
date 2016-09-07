@@ -20,7 +20,7 @@ class MyResolver(Resolver):
                 raise NoNameservers
             for ns in nameservers:
                 try:
-                    response = dns.query.udp(request,ns,5)
+                    response = dns.query.udp(request,ns,3)
                 except (socket.error,dns.exception.Timeout):
                     response = None
                     nameservers.remove(ns)
